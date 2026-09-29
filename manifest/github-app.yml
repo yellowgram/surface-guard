@@ -1,0 +1,32 @@
+# Surface Guard — least-privilege GitHub App manifest (declarative)
+# Create via https://github.com/settings/apps/new?manifest_url=... or paste into App settings.
+# Do not expand scopes without a documented need. Fail closed when a required scope is missing.
+
+name: Surface Guard
+url: https://www.yellowgram.dev/surface-guard
+hook_attributes:
+  url: https://REPLACE_HOST/github/webhook
+  active: true
+redirect_url: https://www.yellowgram.dev/surface-guard
+setup_url: https://www.yellowgram.dev/surface-guard
+description: >
+  Private-repo PR check for SurfacePin lockfiles. Paid per org.
+  Public repos should use the free OSS Action (yellowgram/surfacepin).
+
+# Events we actually handle. Others are ignored after signature verify.
+default_events:
+  - check_suite
+  - pull_request
+  - installation
+  - installation_repositories
+
+# Least privilege — nothing beyond what the private-repo check needs.
+default_permissions:
+  contents: read          # read lockfile + surface files on private repos
+  checks: write           # post Surface Guard check runs (allow/deny)
+  metadata: read          # required baseline
+  pull_requests: read     # know which PR/SHA to annotate
+
+# Explicit non-goals (do not request):
+# - administration, members, organization_*, secrets, workflows write
+# - issues write, deployments, pages, packages
