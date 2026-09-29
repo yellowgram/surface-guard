@@ -76,3 +76,18 @@ test("deny: verify throws → unreadable, not allow", async () => {
   assert.equal(d.outcome, "deny");
   if (d.outcome === "deny") assert.equal(d.code, "lockfile_unreadable");
 });
+
+test("deny: installation_token_failed", async () => {
+  const d = await runSurfaceGuardCheck({
+    repo: { private: true, permissions: permsOk },
+    orgLogin: "acme",
+    entitlement: entitled,
+    verify: async () => ({
+      ok: false,
+      reason: "installation_token_failed",
+      detail: "mint failed",
+    }),
+  });
+  assert.equal(d.outcome, "deny");
+  if (d.outcome === "deny") assert.equal(d.code, "installation_token_failed");
+});

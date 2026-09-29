@@ -8,6 +8,8 @@ export type AppConfig = {
   host: string;
   entitledOrgs: Set<string>;
   lockfilePath: string;
+  /** Committed surface dump JSON path (file-mode verify). Empty → verify fails closed. */
+  surfacePath: string;
 };
 
 const PLACEHOLDER_SECRETS = new Set([
@@ -83,5 +85,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     host: (env.HOST ?? "127.0.0.1").trim() || "127.0.0.1",
     entitledOrgs: parseEntitledOrgs(env.SURFACE_GUARD_ENTITLED_ORGS),
     lockfilePath: (env.SURFACE_GUARD_LOCKFILE_PATH ?? "surfacepin.lock.json").trim(),
+    surfacePath: (env.SURFACE_GUARD_SURFACE_PATH ?? "").trim(),
   };
 }

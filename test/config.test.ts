@@ -35,7 +35,10 @@ test("loadConfig accepts configured env", () => {
     GITHUB_APP_PRIVATE_KEY: "pk",
     GITHUB_WEBHOOK_SECRET: "a-long-random-secret!!",
     SURFACE_GUARD_ENTITLED_ORGS: "acme",
+    SURFACE_GUARD_SURFACE_PATH: "tools.json",
   });
   assert.equal(c.appId, "1");
   assert.ok(c.entitledOrgs.has("acme"));
+  assert.equal(c.surfacePath, "tools.json");
+  assert.equal(c.lockfilePath, "surfacepin.lock.json");
 });

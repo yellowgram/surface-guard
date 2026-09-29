@@ -8,7 +8,11 @@ import {
 
 export type VerifyResult =
   | { ok: true }
-  | { ok: false; reason: "missing" | "unreadable" | "drift"; detail?: string };
+  | {
+      ok: false;
+      reason: "missing" | "unreadable" | "drift" | "installation_token_failed";
+      detail?: string;
+    };
 
 export type RunCheckInput = {
   repo: RepoPrivacyInput;
@@ -53,6 +57,15 @@ export async function runSurfaceGuardCheck(input: RunCheckInput): Promise<Decisi
     };
   }
 
+  if (verify.reason === "installation_token_failed") {
+    return {
+      outcome: "deny",
+      code: "installation_token_failed",
+      title: denyTitle("installation_token_failed"),
+      summary: denySummary("installation_token_failed", verify.detail),
+      conclusion: "failure",
+    };
+  }
   if (verify.reason === "missing") {
     return {
       outcome: "deny",

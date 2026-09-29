@@ -6,7 +6,7 @@ import type { EntitlementStore } from "../billing/entitlement.js";
 import type { VerifyResult } from "../check/runCheck.js";
 
 export type WebhookHandleResult =
-  | { status: number; body: { ok: true; decision?: Decision; ignored?: string } }
+  | { status: number; body: { ok: true; decision?: Decision; ignored?: string; checkId?: number } }
   | { status: number; body: { ok: false; code: string; message: string } };
 
 export type HandlerDeps = {
@@ -22,6 +22,17 @@ export type HandlerDeps = {
     sha: string;
     installationId: number;
   }) => () => Promise<VerifyResult>;
+  /**
+   * Post Checks API run after a decision. Required in production.
+   * Fail closed: throw → webhook returns 502 so GitHub retries (no silent missing check).
+   */
+  postCheck?: (ctx: {
+    owner: string;
+    repo: string;
+    sha: string;
+    installationId: number;
+    decision: Decision;
+  }) => Promise<{ id: number } | void>;
 };
 
 type RepoPayload = {
@@ -155,6 +166,29 @@ export async function handleGitHubWebhook(
     }),
   });
 
-  // Always return the decision explicitly — callers must post a check run from this.
-  return { status: 200, body: { ok: true, decision } };
+  let checkId: number | undefined;
+  if (deps.postCheck) {
+    try {
+      const posted = await deps.postCheck({
+        owner,
+        repo: repoName,
+        sha,
+        installationId: installation.installationId,
+        decision,
+      });
+      if (posted && typeof posted.id === "number") checkId = posted.id;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        status: 502,
+        body: {
+          ok: false,
+          code: "check_post_failed",
+          message: `Decision computed but Checks API post failed (fail closed, GitHub may retry): ${message}`,
+        },
+      };
+    }
+  }
+
+  return { status: 200, body: { ok: true, decision, checkId } };
 }

@@ -10,4 +10,8 @@ export {
 export { loadConfig, isUnconfiguredSecret, parseEntitledOrgs } from "./config.js";
 export { SurfaceGuardDeny } from "./errors.js";
 export type { Decision, DenyCode } from "./errors.js";
-export { createServer } from "./server.js";
+export { createServer, stubVerifyUnavailable } from "./server.js";
+export { createGitHubApp, createInstallationOctokit } from "./github/octokit.js";
+export { fetchRepoFileText, makeContentsFetcher } from "./github/contents.js";
+export { postSurfaceGuardCheck } from "./github/checks.js";
+export { verifySurfacePinAtSha } from "./check/surfacepinVerify.js";

@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "algorithm": "sha256",
+  "canonicalization": "surfacepin-jcs-v1",
+  "root": "efaec0b9f37bd16446eefaea05f562075df0506da99f1ce3204e26e6c4de70bb",
+  "tools": {
+    "root": "eca572b549d73a6db0c8c2a44f865982c67aaf291f4c57d80dfd6031af62c2f2",
+    "entries": [
+      {
+        "name": "echo",
+        "digest": "f35d75b2245239a726029a0248d0c740479b8d6f7eb2b48b4cb14e1c5b1cad5f",
+        "surface": {
+          "description": "Echo text back",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Text to echo"
+              }
+            },
+            "required": [
+              "text"
+            ]
+          },
+          "name": "echo"
+        }
+      },
+      {
+        "name": "ping",
+        "digest": "c2021025279d6e9c71b78a6c99ecb6c4d82ef96a9ac76756036f2b8b8de51104",
+        "surface": {
+          "description": "Health check",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "name": "ping"
+        }
+      }
+    ]
+  }
+}

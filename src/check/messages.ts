@@ -74,8 +74,9 @@ export function denySummary(code: DenyCode, detail?: string): string {
       );
     case "lockfile_missing":
       return (
-        "Committed `surfacepin.lock.json` (or configured lock path) was not found on this SHA. " +
-        "Add a lockfile with OSS SurfacePin, then push again." +
+        "Committed lockfile and/or surface dump was not found on this SHA. " +
+        "Commit `surfacepin.lock.json` plus the surface dump JSON (`SURFACE_GUARD_SURFACE_PATH`), " +
+        "generated with OSS SurfacePin, then push again." +
         extra
       );
     case "lockfile_drift":

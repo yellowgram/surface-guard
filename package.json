@@ -2,7 +2,7 @@
   "name": "surface-guard",
   "version": "0.1.0",
   "private": true,
-  "description": "Surface Guard GitHub App \u2014 private-repo PR check for SurfacePin. Paid companion to MIT OSS yellowgram/surfacepin.",
+  "description": "Surface Guard GitHub App — private-repo PR check for SurfacePin. Paid companion to MIT OSS yellowgram/surfacepin.",
   "license": "UNLICENSED",
   "author": {
     "name": "yellowgram",
@@ -24,8 +24,11 @@
   },
   "homepage": "https://www.yellowgram.dev/surface-guard",
   "devDependencies": {
-    "@types/node": "^20.17.0",
+    "@types/node": "^20.19.43",
     "typescript": "^5.6.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "octokit": "^5.0.5",
+    "surfacepin": "^1.5.0"
+  }
 }
