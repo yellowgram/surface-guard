@@ -4,10 +4,8 @@ Ordered steps to host the **private-repo** GitHub App check ASAP.
 
 **Honesty bar (do not cross):**
 
-- `publicSellLive` stays **false** until App + host actually work end-to-end.
-- Do **not** claim Marketplace / public-sell / generally available.
-- Soft-WTP outreach is banned on this track.
-- Reservation checkout on www is **not** the App.
+- `publicSellLive` is env-driven (`SURFACE_GUARD_PUBLIC_SELL_LIVE`, default **false**). Founder GO after E2E sets it **true** on Fly for founding $99/$990 only.
+- Do **not** claim Marketplace GA beyond founding sell; Soft-WTP / Soft* / coupons stay banned.
 - Fail closed always — no silent pass.
 
 **Who does what**
@@ -57,7 +55,7 @@ fly deploy                      # uses Dockerfile + fly.toml (app = surface-guar
 - `PORT` from env (Fly sets it to match `http_service.internal_port` = 8080)
 - `HOST=0.0.0.0` in image / fly.toml
 - Process runs as non-root user `surfaceguard` (uid 1000)
-- Health: `GET /health` → expect JSON with `ok: true`, `publicSellLive: false`, `silentPass: false`, `surfacepinVerify: true` (not stub), `billingWebhook: true` once Polar secret is set
+- Health: `GET /health` → expect JSON with `ok: true`, `publicSellLive` matching env (true when `SURFACE_GUARD_PUBLIC_SELL_LIVE=true`), `silentPass: false`, `surfacepinVerify: true` (not stub), `billingWebhook: true` once Polar secret is set
 
 Agents: do **not** `fly deploy` unless founder explicitly grants Fly access and asks for that deploy.
 
@@ -71,6 +69,7 @@ fly secrets set \
   SURFACE_GUARD_ENTITLED_ORGS='your-org-login' \
   SURFACE_GUARD_SURFACE_PATH='tools.json' \
   POLAR_WEBHOOK_SECRET='…'   # from Polar webhook endpoint; omit until founder provides
+  SURFACE_GUARD_PUBLIC_SELL_LIVE=true   # after E2E + founder GO; founding sell only
 ```
 
 Optional: `SURFACE_GUARD_LOCKFILE_PATH` (default `surfacepin.lock.json` already in fly.toml `[env]`).
@@ -98,10 +97,10 @@ Then point the GitHub App webhook URL at:
 - Revoke events: `subscription.revoked`, `subscription.paused`, `order.refunded`.
   (`subscription.canceled` is ack-only — access until Polar sends `subscription.revoked`.)
 - Custom field / metadata key: **`github_org`** (GitHub org login, lowercase).
-- `GET /health` → `publicSellLive: false`, `billingWebhook: true` only when `POLAR_WEBHOOK_SECRET` is set (no secret leakage).
+- `GET /health` → `publicSellLive` from `SURFACE_GUARD_PUBLIC_SELL_LIVE` (default false); `billingWebhook: true` only when `POLAR_WEBHOOK_SECRET` is set (no secret leakage).
 - Without `POLAR_WEBHOOK_SECRET`, the route returns **503** (fail closed — never open allow).
 
-**Do not invent Soft-WTP or public-sell copy.** Keep `publicSellLive=false` until strategy says otherwise. Reuse existing founding Polar checkouts (monthly $99 / yearly $990); do not create Soft-WTP SKUs.
+**Founding sell only.** Reuse existing Polar checkouts (monthly $99 / yearly $990). Do not invent Soft-WTP / Soft* / coupons. Flip `SURFACE_GUARD_PUBLIC_SELL_LIVE=true` only after E2E + founder GO.
 
 ### Founder Polar dashboard steps
 
@@ -120,7 +119,7 @@ Then point the GitHub App webhook URL at:
    fly secrets set POLAR_WEBHOOK_SECRET='…' -a surface-guard
    ```
 4. **Bootstrap / override** still works: `SURFACE_GUARD_ENTITLED_ORGS=your-org` for manual grant before webhook E2E.
-5. Confirm `GET https://surface-guard.fly.dev/health` shows `"billingWebhook":true` and `"publicSellLive":false`.
+5. Confirm `GET https://surface-guard.fly.dev/health` shows `"billingWebhook":true` and `"publicSellLive":true` once the sell secret is set.
 
 ### Volume (once)
 
@@ -139,7 +138,7 @@ On an **entitled** org, **private** repo with App installed:
 3. Expect Checks API run named **Surface Guard**:
    - success when lock matches dump
    - failure on drift / missing files / public repo / unpaid org / auth failure
-4. Confirm `GET https://surface-guard.fly.dev/health` still shows `publicSellLive: false`.
+4. Confirm `GET https://surface-guard.fly.dev/health` shows `publicSellLive` per env and checks still fail closed on deny paths.
 
 Local preflight (agents or founder):
 
@@ -158,12 +157,12 @@ npm ci && npm test && npm run build
 - [ ] Installed on one org, private repos only (E)
 - [ ] Polar webhook URL + secret + `github_org` custom field configured; or org listed in `SURFACE_GUARD_ENTITLED_ORGS` after verified payment (F)
 - [ ] Smoke PR shows allow + deny paths (G)
-- [ ] Still **not** claiming Marketplace / public-sell live
+- [ ] Founding public sell live only when `SURFACE_GUARD_PUBLIC_SELL_LIVE=true` (no Soft-WTP / Marketplace GA claims)
 
 ## Explicit non-goals for this checklist
 
 - Creating the GitHub App via automation / agents
 - Committing PEM, webhook secrets, or `.env`
 - `npm publish`
-- Flipping `publicSellLive` / Marketplace claims
-- Soft-WTP or public-sell claims
+- Marketplace GA claims beyond founding $99/$990
+- Soft-WTP / Soft* / coupons

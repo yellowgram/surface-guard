@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isUnconfiguredSecret, loadConfig, parseEntitledOrgs } from "../src/config.js";
+import { isUnconfiguredSecret, loadConfig, parseEntitledOrgs, parsePublicSellLive } from "../src/config.js";
 import { SurfaceGuardDeny } from "../src/errors.js";
 
 test("parseEntitledOrgs normalizes case and commas", () => {
@@ -41,4 +41,14 @@ test("loadConfig accepts configured env", () => {
   assert.ok(c.entitledOrgs.has("acme"));
   assert.equal(c.surfacePath, "tools.json");
   assert.equal(c.lockfilePath, "surfacepin.lock.json");
+});
+
+test("parsePublicSellLive defaults false; true for 1/true/yes", () => {
+  assert.equal(parsePublicSellLive({}), false);
+  assert.equal(parsePublicSellLive({ SURFACE_GUARD_PUBLIC_SELL_LIVE: "" }), false);
+  assert.equal(parsePublicSellLive({ SURFACE_GUARD_PUBLIC_SELL_LIVE: "false" }), false);
+  assert.equal(parsePublicSellLive({ SURFACE_GUARD_PUBLIC_SELL_LIVE: "true" }), true);
+  assert.equal(parsePublicSellLive({ SURFACE_GUARD_PUBLIC_SELL_LIVE: "TRUE" }), true);
+  assert.equal(parsePublicSellLive({ SURFACE_GUARD_PUBLIC_SELL_LIVE: "1" }), true);
+  assert.equal(parsePublicSellLive({ SURFACE_GUARD_PUBLIC_SELL_LIVE: "yes" }), true);
 });
