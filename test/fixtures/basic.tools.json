@@ -1,0 +1,23 @@
+{
+  "tools": [
+    {
+      "name": "echo",
+      "description": "Echo text back",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "Text to echo" }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "ping",
+      "description": "Health check",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

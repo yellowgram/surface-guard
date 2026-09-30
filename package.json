@@ -1,0 +1,34 @@
+{
+  "name": "surface-guard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Surface Guard GitHub App — private-repo PR check for SurfacePin. Paid companion to MIT OSS yellowgram/surfacepin.",
+  "license": "UNLICENSED",
+  "author": {
+    "name": "yellowgram",
+    "url": "https://www.yellowgram.dev"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yellowgram/surface-guard.git"
+  },
+  "homepage": "https://www.yellowgram.dev/surface-guard",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "octokit": "^5.0.5",
+    "surfacepin": "^1.5.0"
+  }
+}
