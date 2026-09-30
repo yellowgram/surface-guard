@@ -94,7 +94,7 @@ fly deploy
 Point the GitHub App webhook at `https://surface-guard.fly.dev/github/webhook`.  
 Point Polar at `https://surface-guard.fly.dev/billing/polar`.
 
-Health: `GET /health` → `publicSellLive: false`, `silentPass: false`, `surfacepinVerify: true`, `billingWebhook: true` when Polar secret is set.
+Health: `GET /health` → `publicSellLive` from `SURFACE_GUARD_PUBLIC_SELL_LIVE` (default false), `silentPass: false`, `surfacepinVerify: true`, `billingWebhook: true` when Polar secret is set.
 
 ## Verify after deploy
 
@@ -107,7 +107,7 @@ npm ci && npm test
 ## Still operator / strategy (honest gaps)
 
 - GitHub App registration + PEM + webhook secret are **manual**
-- Polar → durable entitlement is wired (`POST /billing/polar`); founder must add webhook URL + secret + `github_org` custom field. `publicSellLive` stays false until E2E + strategy
+- Polar → durable entitlement is wired (`POST /billing/polar`); founder must add webhook URL + secret + `github_org` custom field
 - No multi-region HA / SLA pack
-- Public sell / Marketplace listing remains **paused** until gates + strategy unpause
+- Founding public sell: set `SURFACE_GUARD_PUBLIC_SELL_LIVE=true` after E2E + founder GO ($99/$990 only; no Soft*). Marketplace GA still separate.
 - Live stdio verify is out of scope for the App host (use OSS Action for that)

@@ -1,7 +1,7 @@
 import http from "node:http";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { loadConfig, isUnconfiguredSecret } from "./config.js";
+import { loadConfig, isUnconfiguredSecret, parsePublicSellLive } from "./config.js";
 import {
   FileEntitlementStore,
   UnionEntitlementStore,
@@ -146,7 +146,7 @@ export function createServer(opts?: {
             surfacepinVerify: !stubMode,
             checksApi: !stubMode,
             stubVerify: stubMode,
-            publicSellLive: false,
+            publicSellLive: parsePublicSellLive(env),
             billingWebhook: billingWebhookConfigured,
           }),
         );
@@ -236,13 +236,15 @@ function isMain(): boolean {
 
 if (isMain()) {
   const config = loadConfig();
-  const server = createServer();
+  const env = process.env;
+  const publicSellLive = parsePublicSellLive(env);
+  const server = createServer({ env });
   server.listen(config.port, config.host, () => {
     const billing = isUnconfiguredSecret(config.polarWebhookSecret)
       ? "billingWebhook=false (set POLAR_WEBHOOK_SECRET)"
       : "billingWebhook=true";
     console.log(
-      `surface-guard listening on http://${config.host}:${config.port} (Octokit+SurfacePin+Checks+Polar; fail-closed; publicSellLive=false; ${billing})`,
+      `surface-guard listening on http://${config.host}:${config.port} (Octokit+SurfacePin+Checks+Polar; fail-closed; publicSellLive=${publicSellLive}; ${billing})`,
     );
   });
 }

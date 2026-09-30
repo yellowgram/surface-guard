@@ -44,6 +44,13 @@ export function parseEntitledOrgs(raw: string | undefined): Set<string> {
   return set;
 }
 
+
+/** Public founding sell honesty flag. Default false; set SURFACE_GUARD_PUBLIC_SELL_LIVE=true on host. */
+export function parsePublicSellLive(env: NodeJS.ProcessEnv = process.env): boolean {
+  const raw = (env.SURFACE_GUARD_PUBLIC_SELL_LIVE ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
 /**
  * Load config. Missing webhook secret / App id / private key refuse to start
  * (fail loud) — never boot into a silent-pass mode.

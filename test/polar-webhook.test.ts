@@ -198,7 +198,7 @@ test("HTTP /billing/polar + env seed still works via createServer", async () => 
 
     const health = await fetch(`http://127.0.0.1:${port}/health`);
     const healthJson = (await health.json()) as Record<string, unknown>;
-    assert.equal(healthJson.publicSellLive, false);
+    assert.equal(healthJson.publicSellLive, false); // default: env unset
     assert.equal(healthJson.billingWebhook, true);
     assert.equal(healthJson.silentPass, false);
 

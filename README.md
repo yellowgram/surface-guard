@@ -58,7 +58,7 @@ export GITHUB_WEBHOOK_SECRET='a-long-random-secret!!'
 export SURFACE_GUARD_ENTITLED_ORGS=acme
 export SURFACE_GUARD_SURFACE_PATH=tools.json
 npm run build && npm start
-# POST /github/webhook  GET /health  (health.publicSellLive === false)
+# POST /github/webhook  GET /health  (publicSellLive from SURFACE_GUARD_PUBLIC_SELL_LIVE, default false)
 ```
 
 ## Install flow (operator)
