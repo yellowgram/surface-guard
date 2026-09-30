@@ -7,9 +7,22 @@ export {
 export { runSurfaceGuardCheck } from "./check/runCheck.js";
 export {
   EnvEntitlementStore,
+  FileEntitlementStore,
+  UnionEntitlementStore,
   evaluateEntitlement,
   applyBillingEntitlement,
+  revokeBillingEntitlement,
 } from "./billing/entitlement.js";
+export {
+  handlePolarWebhook,
+  extractGithubOrg,
+  GITHUB_ORG_FIELD,
+  classifyPolarEvent,
+} from "./billing/polarWebhook.js";
+export {
+  verifyPolarWebhookSignature,
+  signPolarWebhook,
+} from "./billing/polarVerify.js";
 export { loadConfig, isUnconfiguredSecret, parseEntitledOrgs } from "./config.js";
 export { SurfaceGuardDeny } from "./errors.js";
 export type { Decision, DenyCode } from "./errors.js";

@@ -14,6 +14,7 @@ primary_region = "iad"
   # PORT is injected by Fly; app reads process.env.PORT (default 3080 in code).
   # Non-secret path defaults (override with secrets/env as needed):
   SURFACE_GUARD_LOCKFILE_PATH = "surfacepin.lock.json"
+  SURFACE_GUARD_ENTITLEMENT_PATH = "/data/entitlements.json"
 
 [http_service]
   internal_port = 8080
@@ -29,6 +30,13 @@ primary_region = "iad"
     grace_period = "20s"
     method = "GET"
     path = "/health"
+
+# Single-writer durable entitlement JSON. Create once:
+#   fly volumes create surface_guard_data --region iad --size 1 -a surface-guard
+# Keep machine count at 1 while using a single volume (no shared FS).
+[mounts]
+  source = "surface_guard_data"
+  destination = "/data"
 
 [[vm]]
   size = "shared-cpu-1x"

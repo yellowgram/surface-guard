@@ -10,6 +10,10 @@ export type AppConfig = {
   lockfilePath: string;
   /** Committed surface dump JSON path (file-mode verify). Empty → verify fails closed. */
   surfacePath: string;
+  /** Polar Standard Webhooks secret. Empty/placeholder → billing route fail-closed (503). */
+  polarWebhookSecret: string;
+  /** Durable entitlement JSON path (Fly volume). */
+  entitlementStorePath: string;
 };
 
 const PLACEHOLDER_SECRETS = new Set([
@@ -18,6 +22,7 @@ const PLACEHOLDER_SECRETS = new Set([
   "changeme",
   "replace_with_long_random_secret",
   "whsec_replace_me",
+  "polar_whs_replace_me",
 ]);
 
 export function isUnconfiguredSecret(value: string | undefined | null): boolean {
@@ -42,6 +47,7 @@ export function parseEntitledOrgs(raw: string | undefined): Set<string> {
 /**
  * Load config. Missing webhook secret / App id / private key refuse to start
  * (fail loud) — never boot into a silent-pass mode.
+ * Polar secret is optional at boot: billing route stays fail-closed until set.
  */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const appId = (env.GITHUB_APP_ID ?? "").trim();
@@ -86,5 +92,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     entitledOrgs: parseEntitledOrgs(env.SURFACE_GUARD_ENTITLED_ORGS),
     lockfilePath: (env.SURFACE_GUARD_LOCKFILE_PATH ?? "surfacepin.lock.json").trim(),
     surfacePath: (env.SURFACE_GUARD_SURFACE_PATH ?? "").trim(),
+    polarWebhookSecret: (env.POLAR_WEBHOOK_SECRET ?? "").trim(),
+    entitlementStorePath: (
+      env.SURFACE_GUARD_ENTITLEMENT_PATH ?? "/data/entitlements.json"
+    ).trim(),
   };
 }

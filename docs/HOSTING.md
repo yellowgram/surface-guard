@@ -25,7 +25,7 @@ Public repos stay on the free OSS Action (`yellowgram/surfacepin`).
 - Node 20+
 - A GitHub App created from [`manifest/github-app.yml`](../manifest/github-app.yml) — **do not widen scopes**
 - TLS-terminated HTTPS URL for webhooks (Fly / Railway / Render / VM + Caddy / etc.)
-- Entitled org list (env today; Polar webhook hook later)
+- Entitled orgs: env seed **or** Polar durable store (`POST /billing/polar`)
 
 ## Customer repo layout (file-mode)
 
@@ -46,12 +46,17 @@ Copy [`.env.example`](../.env.example). Critical vars:
 GITHUB_APP_ID=…
 GITHUB_APP_PRIVATE_KEY_PATH=./app-private-key.pem   # or GITHUB_APP_PRIVATE_KEY with \n PEM
 GITHUB_WEBHOOK_SECRET=…                            # ≥16 chars, not a placeholder
-SURFACE_GUARD_ENTITLED_ORGS=acme,other-org         # lowercase logins
+SURFACE_GUARD_ENTITLED_ORGS=acme,other-org         # lowercase logins (bootstrap/override)
+SURFACE_GUARD_ENTITLEMENT_PATH=/data/entitlements.json
+POLAR_WEBHOOK_SECRET=…                             # Polar dashboard webhook secret
 SURFACE_GUARD_LOCKFILE_PATH=surfacepin.lock.json
 SURFACE_GUARD_SURFACE_PATH=tools.json              # or combined surface JSON
 PORT=3080
 HOST=0.0.0.0                                       # behind a reverse proxy
 ```
+
+Billing webhook: `https://<your-host>/billing/polar`  
+Checkout custom field slug: `github_org` (required on founding products).
 
 Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (never use for founding orgs).
 
@@ -62,7 +67,7 @@ Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (ne
 3. Webhook secret = `GITHUB_WEBHOOK_SECRET`
 4. Download PEM → `GITHUB_APP_PRIVATE_KEY_PATH`
 5. Install on **one org**; select only private repos that need the check
-6. Mark org entitled after verified payment (`SURFACE_GUARD_ENTITLED_ORGS` or `applyBillingEntitlement`)
+6. Mark org entitled after verified payment (Polar webhook with `github_org`, or `SURFACE_GUARD_ENTITLED_ORGS` override)
 
 ## Deploy artifacts
 
@@ -74,19 +79,22 @@ Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (ne
 
 ```bash
 fly apps create surface-guard   # once
+fly volumes create surface_guard_data --region iad --size 1 -a surface-guard   # once
 fly secrets set \
   GITHUB_APP_ID=… \
   GITHUB_WEBHOOK_SECRET=… \
   GITHUB_APP_PRIVATE_KEY="$(cat app-private-key.pem)" \
   SURFACE_GUARD_ENTITLED_ORGS=acme \
-  SURFACE_GUARD_SURFACE_PATH=tools.json
-# Dockerfile or fly.toml: node dist/src/server.js, PORT from Fly
+  SURFACE_GUARD_SURFACE_PATH=tools.json \
+  POLAR_WEBHOOK_SECRET=…   # omit until Polar dashboard secret exists
+fly scale count 1 -a surface-guard
 fly deploy
 ```
 
-Point the GitHub App webhook at `https://surface-guard.fly.dev/github/webhook`.
+Point the GitHub App webhook at `https://surface-guard.fly.dev/github/webhook`.  
+Point Polar at `https://surface-guard.fly.dev/billing/polar`.
 
-Health: `GET /health` → `publicSellLive: false`, `silentPass: false`, `surfacepinVerify: true`.
+Health: `GET /health` → `publicSellLive: false`, `silentPass: false`, `surfacepinVerify: true`, `billingWebhook: true` when Polar secret is set.
 
 ## Verify after deploy
 
@@ -99,7 +107,7 @@ npm ci && npm test
 ## Still operator / strategy (honest gaps)
 
 - GitHub App registration + PEM + webhook secret are **manual**
-- Polar → entitlement store is env/set stub (`applyBillingEntitlement`); no live billing webhook in this repo yet
+- Polar → durable entitlement is wired (`POST /billing/polar`); founder must add webhook URL + secret + `github_org` custom field. `publicSellLive` stays false until E2E + strategy
 - No multi-region HA / SLA pack
 - Public sell / Marketplace listing remains **paused** until gates + strategy unpause
 - Live stdio verify is out of scope for the App host (use OSS Action for that)

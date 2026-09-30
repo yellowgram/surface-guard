@@ -15,7 +15,7 @@ Ordered steps to host the **private-repo** GitHub App check ASAP.
 | Actor | Can do |
 |-------|--------|
 | **Founder (you)** | Create GitHub App, generate webhook secret, download PEM, install App on org, set Fly secrets (or approve agent with fly auth), mark entitled orgs after verified payment, open smoke PR on a private repo you control |
-| **Agents** | Land Dockerfile / fly.toml / docs, run `npm ci` / test / build, open this PR, draft secret *names* and commands (never invent or commit secret *values*), open follow-up issues for Polar webhook |
+| **Agents** | Land Dockerfile / fly.toml / docs / Polar webhook code, run `npm ci` / test / build, open this PR, draft secret *names* and commands (never invent or commit secret *values*) |
 
 Deploy artifacts in-repo: [`Dockerfile`](../Dockerfile), [`fly.toml`](../fly.toml). Narrative hosting notes: [`HOSTING.md`](HOSTING.md).
 
@@ -57,7 +57,7 @@ fly deploy                      # uses Dockerfile + fly.toml (app = surface-guar
 - `PORT` from env (Fly sets it to match `http_service.internal_port` = 8080)
 - `HOST=0.0.0.0` in image / fly.toml
 - Process runs as non-root user `surfaceguard` (uid 1000)
-- Health: `GET /health` → expect JSON with `ok: true`, `publicSellLive: false`, `silentPass: false`, `surfacepinVerify: true` (not stub)
+- Health: `GET /health` → expect JSON with `ok: true`, `publicSellLive: false`, `silentPass: false`, `surfacepinVerify: true` (not stub), `billingWebhook: true` once Polar secret is set
 
 Agents: do **not** `fly deploy` unless founder explicitly grants Fly access and asks for that deploy.
 
@@ -69,7 +69,8 @@ fly secrets set \
   GITHUB_WEBHOOK_SECRET='…' \
   GITHUB_APP_PRIVATE_KEY="$(cat /path/to/app-private-key.pem)" \
   SURFACE_GUARD_ENTITLED_ORGS='your-org-login' \
-  SURFACE_GUARD_SURFACE_PATH='tools.json'
+  SURFACE_GUARD_SURFACE_PATH='tools.json' \
+  POLAR_WEBHOOK_SECRET='…'   # from Polar webhook endpoint; omit until founder provides
 ```
 
 Optional: `SURFACE_GUARD_LOCKFILE_PATH` (default `surfacepin.lock.json` already in fly.toml `[env]`).
@@ -86,33 +87,47 @@ Then point the GitHub App webhook URL at:
 2. Select **only private repos** that need the check (least privilege).
 3. Confirm installation has the least-privilege perms from the manifest (no admin / secrets / workflows write).
 
-## (F) Polar / entitlement env stub — **founder + honest gap**
+## (F) Polar billing webhook + durable entitlement — **founder clicks + secrets**
 
-**v1 (now):** entitlement is env-only.
+**What shipped in code**
 
-- Set `SURFACE_GUARD_ENTITLED_ORGS` to comma-separated lowercase org logins after **verified** founding / paid checkout.
-- Code hook exists: `applyBillingEntitlement` in `src/billing/entitlement.ts` — in-memory helper for a future billing webhook; **no live Polar (or other) webhook route is wired in this repo yet**.
+- `POST https://surface-guard.fly.dev/billing/polar` — Polar Standard Webhooks signature verify (fail closed).
+- Durable store: JSON file on Fly volume `/data/entitlements.json` (single-writer; keep machine count = 1).
+- Union with env seed: org is entitled if **either** `SURFACE_GUARD_ENTITLED_ORGS` lists it **or** Polar granted it.
+- Grant events: `order.paid`, `subscription.active`, `subscription.uncanceled`, `subscription.resumed`.
+- Revoke events: `subscription.revoked`, `subscription.paused`, `order.refunded`.
+  (`subscription.canceled` is ack-only — access until Polar sends `subscription.revoked`.)
+- Custom field / metadata key: **`github_org`** (GitHub org login, lowercase).
+- `GET /health` → `publicSellLive: false`, `billingWebhook: true` only when `POLAR_WEBHOOK_SECRET` is set (no secret leakage).
+- Without `POLAR_WEBHOOK_SECRET`, the route returns **503** (fail closed — never open allow).
 
-**Do not invent Soft-WTP or public-sell copy.** Reservation checkout ≠ App entitlement until you mark the org.
+**Do not invent Soft-WTP or public-sell copy.** Keep `publicSellLive=false` until strategy says otherwise. Reuse existing founding Polar checkouts (monthly $99 / yearly $990); do not create Soft-WTP SKUs.
 
-### Follow-up issue text (paste into a GitHub issue when ready)
+### Founder Polar dashboard steps
 
-```text
-Title: Wire Polar entitlement webhook → SURFACE_GUARD_ENTITLED_ORGS store
+1. **Custom field** (Settings → Custom Fields → New):
+   - Type: Text
+   - Slug: `github_org` (exact)
+   - Name/label: e.g. "GitHub organization login"
+   - Attach to both founding products/checkout links as **Required**
+2. **Webhook endpoint** (Settings → Webhooks → Add Endpoint):
+   - URL: `https://surface-guard.fly.dev/billing/polar`
+   - Format: Raw
+   - Secret: generate in Polar (or paste a long random). This becomes Fly secret `POLAR_WEBHOOK_SECRET`.
+   - Subscribe at least: `order.paid`, `order.refunded`, `subscription.active`, `subscription.revoked`, `subscription.paused`, `subscription.uncanceled`, `subscription.resumed` (plus canceled/updated if you want delivery logs).
+3. **Fly secret** (after you have the Polar secret value — agents must not invent it):
+   ```bash
+   fly secrets set POLAR_WEBHOOK_SECRET='…' -a surface-guard
+   ```
+4. **Bootstrap / override** still works: `SURFACE_GUARD_ENTITLED_ORGS=your-org` for manual grant before webhook E2E.
+5. Confirm `GET https://surface-guard.fly.dev/health` shows `"billingWebhook":true` and `"publicSellLive":false`.
 
-Body:
-v1 Surface Guard hosts with fail-closed env entitlement (SURFACE_GUARD_ENTITLED_ORGS).
-applyBillingEntitlement() is a stub hook only — there is no HTTP route verifying Polar
-(or Stripe) webhooks, no signature check for billing events, and no durable store.
+### Volume (once)
 
-Need:
-- POST /billing/polar (or equivalent) with provider signature verify
-- Map paid org login → durable entitlement store (replace env-only for multi-instance)
-- Fail closed on bad signatures / unknown events
-- Keep publicSellLive=false until strategy unpauses; no Marketplace claim in this work
-- Tests for allow/deny on entitlement flip; never silent pass
-
-Out of scope: Soft-WTP outreach, public-sell messaging, widening GitHub App scopes.
+```bash
+fly volumes create surface_guard_data --region iad --size 1 -a surface-guard
+# Deploy attaches mount from fly.toml; keep a single machine for single-writer JSON.
+fly scale count 1 -a surface-guard
 ```
 
 ## (G) Smoke PR check — **founder**
@@ -141,7 +156,7 @@ npm ci && npm test && npm run build
 - [ ] Fly app deployed and healthy (C)
 - [ ] Secrets set; webhook URL live (D)
 - [ ] Installed on one org, private repos only (E)
-- [ ] At least one org listed in `SURFACE_GUARD_ENTITLED_ORGS` after verified payment (F)
+- [ ] Polar webhook URL + secret + `github_org` custom field configured; or org listed in `SURFACE_GUARD_ENTITLED_ORGS` after verified payment (F)
 - [ ] Smoke PR shows allow + deny paths (G)
 - [ ] Still **not** claiming Marketplace / public-sell live
 
@@ -150,5 +165,5 @@ npm ci && npm test && npm run build
 - Creating the GitHub App via automation / agents
 - Committing PEM, webhook secrets, or `.env`
 - `npm publish`
-- Polar live webhook (tracked as follow-up above)
+- Flipping `publicSellLive` / Marketplace claims
 - Soft-WTP or public-sell claims

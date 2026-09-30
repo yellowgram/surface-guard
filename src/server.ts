@@ -1,7 +1,12 @@
 import http from "node:http";
 import { readFileSync } from "node:fs";
-import { loadConfig } from "./config.js";
-import { EnvEntitlementStore } from "./billing/entitlement.js";
+import { pathToFileURL } from "node:url";
+import { loadConfig, isUnconfiguredSecret } from "./config.js";
+import {
+  FileEntitlementStore,
+  UnionEntitlementStore,
+} from "./billing/entitlement.js";
+import { handlePolarWebhook } from "./billing/polarWebhook.js";
 import { handleGitHubWebhook } from "./webhook/handler.js";
 import type { VerifyResult } from "./check/runCheck.js";
 import type { Decision } from "./errors.js";
@@ -14,6 +19,7 @@ import {
 import { makeContentsFetcher } from "./github/contents.js";
 import { postSurfaceGuardCheck } from "./github/checks.js";
 import { verifySurfacePinAtSha } from "./check/surfacepinVerify.js";
+import type { MutableEntitlementStore } from "./billing/entitlement.js";
 
 function resolvePrivateKey(pemOrFile: string): string {
   if (pemOrFile.startsWith("FILE:")) {
@@ -37,6 +43,7 @@ export function stubVerifyUnavailable(): () => Promise<VerifyResult> {
 
 export function createServer(opts?: {
   env?: NodeJS.ProcessEnv;
+  entitlementStore?: MutableEntitlementStore;
   makeVerify?: (ctx: {
     owner: string;
     repo: string;
@@ -58,9 +65,14 @@ export function createServer(opts?: {
   const config = loadConfig(env);
   const privateKey = resolvePrivateKey(config.privateKeyPem);
 
-  const entitlement = new EnvEntitlementStore(config.entitledOrgs, {
-    failIfEmpty: false,
-  });
+  const entitlement: MutableEntitlementStore =
+    opts?.entitlementStore ??
+    new UnionEntitlementStore(
+      config.entitledOrgs,
+      new FileEntitlementStore(config.entitlementStorePath),
+    );
+
+  const billingWebhookConfigured = !isUnconfiguredSecret(config.polarWebhookSecret);
 
   const stubMode = (env.SURFACE_GUARD_STUB_VERIFY ?? "").trim() === "1";
   // Skip App client when tests inject both makeVerify + postCheck (no network).
@@ -135,6 +147,7 @@ export function createServer(opts?: {
             checksApi: !stubMode,
             stubVerify: stubMode,
             publicSellLive: false,
+            billingWebhook: billingWebhookConfigured,
           }),
         );
         return;
@@ -166,6 +179,29 @@ export function createServer(opts?: {
         return;
       }
 
+      if (req.method === "POST" && req.url === "/billing/polar") {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        const rawBody = Buffer.concat(chunks);
+        const result = await handlePolarWebhook(
+          {
+            polarWebhookSecret: config.polarWebhookSecret,
+            store: entitlement,
+          },
+          {
+            id: headerString(req.headers["webhook-id"]),
+            timestamp: headerString(req.headers["webhook-timestamp"]),
+            signature: headerString(req.headers["webhook-signature"]),
+          },
+          rawBody,
+        );
+        res.writeHead(result.status, { "content-type": "application/json" });
+        res.end(JSON.stringify(result.body));
+        return;
+      }
+
       res.writeHead(404, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: false, message: "not found" }));
     } catch (err) {
@@ -183,13 +219,18 @@ export function createServer(opts?: {
   return server;
 }
 
+function headerString(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
 function isMain(): boolean {
   const entry = process.argv[1];
   if (!entry) return false;
   try {
-    return import.meta.url === new URL(entry, "file://").href || import.meta.url.endsWith("/server.js");
+    return import.meta.url === pathToFileURL(entry).href;
   } catch {
-    return import.meta.url.endsWith("/server.js");
+    return false;
   }
 }
 
@@ -197,8 +238,11 @@ if (isMain()) {
   const config = loadConfig();
   const server = createServer();
   server.listen(config.port, config.host, () => {
+    const billing = isUnconfiguredSecret(config.polarWebhookSecret)
+      ? "billingWebhook=false (set POLAR_WEBHOOK_SECRET)"
+      : "billingWebhook=true";
     console.log(
-      `surface-guard listening on http://${config.host}:${config.port} (Octokit+SurfacePin+Checks wired; fail-closed; publicSellLive=false)`,
+      `surface-guard listening on http://${config.host}:${config.port} (Octokit+SurfacePin+Checks+Polar; fail-closed; publicSellLive=false; ${billing})`,
     );
   });
 }
