@@ -64,6 +64,12 @@ Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (ne
 5. Install on **one org**; select only private repos that need the check
 6. Mark org entitled after verified payment (`SURFACE_GUARD_ENTITLED_ORGS` or `applyBillingEntitlement`)
 
+## Deploy artifacts
+
+- [`Dockerfile`](../Dockerfile) — multi-stage Node 20, `CMD node dist/src/server.js`, non-root `surfaceguard`, `PORT`/`HOST` from env
+- [`fly.toml`](../fly.toml) — app name `surface-guard`, region `iad`, health check `GET /health`
+- Ordered go-live checklist: [`OPERATOR_GO_LIVE.md`](OPERATOR_GO_LIVE.md) (founder clicks vs agent work)
+
 ## Example: Fly.io
 
 ```bash

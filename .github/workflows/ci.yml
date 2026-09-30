@@ -1,7 +1,7 @@
 name: ci
 on:
   push:
-    branches: [main, harden/**]
+    branches: [main, harden/**, ops/**]
   pull_request:
 jobs:
   test:
