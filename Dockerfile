@@ -20,8 +20,10 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=8080
 
-RUN groupadd --gid 1000 surfaceguard \
-  && useradd --uid 1000 --gid surfaceguard --shell /usr/sbin/nologin --create-home surfaceguard
+# node:20-bookworm-slim already ships uid/gid 1000 as `node` — reuse it.
+RUN usermod -l surfaceguard node \
+  && groupmod -n surfaceguard node \
+  && usermod -d /home/surfaceguard -m surfaceguard
 
 COPY --from=build --chown=surfaceguard:surfaceguard /app/package.json /app/package-lock.json ./
 COPY --from=build --chown=surfaceguard:surfaceguard /app/node_modules ./node_modules

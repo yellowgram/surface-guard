@@ -9,6 +9,24 @@ export type RepoPrivacyInput = {
   fullName?: string;
 };
 
+
+/**
+ * True when the permission map already satisfies the contents+checks gate.
+ * Used by the webhook handler to decide whether to resolve via App API.
+ * Does not change evaluatePrivateRepoGate behavior.
+ */
+export function hasUsableGatePermissions(
+  permissions?: Record<string, string> | null,
+): boolean {
+  const perms = permissions ?? {};
+  const contents = (perms.contents ?? "").toLowerCase();
+  const checks = (perms.checks ?? "").toLowerCase();
+  const contentsOk =
+    contents === "read" || contents === "write" || contents === "admin";
+  const checksOk = checks === "write" || checks === "admin";
+  return contentsOk && checksOk;
+}
+
 /**
  * Reliable private-repo gate.
  * - public → deny (point at OSS Action)

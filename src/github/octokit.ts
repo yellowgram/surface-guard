@@ -44,6 +44,38 @@ export async function createInstallationOctokit(
   }
 }
 
+
+/**
+ * Fetch installation permission map via App JWT:
+ * GET /app/installations/{installation_id}
+ *
+ * Webhook payloads for pull_request / check_suite often omit installation.permissions;
+ * this is the authoritative source. Fail closed: return null on any error / missing map.
+ */
+export async function fetchInstallationPermissions(
+  app: App,
+  installationId: number,
+): Promise<Record<string, string> | null> {
+  if (!Number.isFinite(installationId) || installationId <= 0) {
+    return null;
+  }
+  try {
+    const { data } = await app.octokit.request(
+      "GET /app/installations/{installation_id}",
+      { installation_id: installationId },
+    );
+    const perms = data?.permissions;
+    if (!perms || typeof perms !== "object") return null;
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(perms as Record<string, unknown>)) {
+      if (typeof v === "string") out[k] = v;
+    }
+    return Object.keys(out).length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 export function formatOctokitError(err: unknown): string {
   if (err instanceof RequestError) {
     return `GitHub API ${err.status}: ${err.message}`;

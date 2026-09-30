@@ -111,3 +111,141 @@ test("deny: verify drift surfaces as lockfile_drift", async () => {
     assert.fail("expected drift deny");
   }
 });
+
+test("deny: webhook without permissions and no resolver → missing_contents_permission", async () => {
+  const body = payload({
+    installation: {
+      id: 42,
+      account: { login: "acme", type: "Organization" },
+      // permissions omitted — mirrors real pull_request payloads
+    },
+  });
+  const raw = Buffer.from(JSON.stringify(body), "utf8");
+  const r = await handleGitHubWebhook(
+    {
+      webhookSecret: SECRET,
+      entitlement: entitled,
+      makeVerify: () => async () => ({ ok: true }),
+      // no resolveInstallationPermissions
+    },
+    {
+      signature: signGitHubWebhook(raw, SECRET),
+      event: "pull_request",
+      delivery: "d-no-perms",
+    },
+    raw,
+  );
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ok, true);
+  if (r.body.ok && r.body.decision?.outcome === "deny") {
+    assert.equal(r.body.decision.code, "missing_contents_permission");
+  } else {
+    assert.fail("expected missing_contents_permission deny");
+  }
+});
+
+test("deny: webhook without permissions and resolver returns null → missing_contents_permission", async () => {
+  const body = payload({
+    installation: {
+      id: 42,
+      account: { login: "acme", type: "Organization" },
+    },
+  });
+  const raw = Buffer.from(JSON.stringify(body), "utf8");
+  const r = await handleGitHubWebhook(
+    {
+      webhookSecret: SECRET,
+      entitlement: entitled,
+      makeVerify: () => async () => ({ ok: true }),
+      resolveInstallationPermissions: async () => null,
+    },
+    {
+      signature: signGitHubWebhook(raw, SECRET),
+      event: "pull_request",
+      delivery: "d-null-resolve",
+    },
+    raw,
+  );
+  assert.equal(r.status, 200);
+  if (r.body.ok && r.body.decision?.outcome === "deny") {
+    assert.equal(r.body.decision.code, "missing_contents_permission");
+  } else {
+    assert.fail("expected missing_contents_permission deny");
+  }
+});
+
+test("allow path: webhook without permissions but resolver returns contents+checks → continues past perm deny", async () => {
+  let resolvedId: number | undefined;
+  const body = payload({
+    installation: {
+      id: 42,
+      account: { login: "acme", type: "Organization" },
+    },
+  });
+  const raw = Buffer.from(JSON.stringify(body), "utf8");
+  const r = await handleGitHubWebhook(
+    {
+      webhookSecret: SECRET,
+      entitlement: entitled,
+      makeVerify: () => async () => ({ ok: true }),
+      resolveInstallationPermissions: async (installationId) => {
+        resolvedId = installationId;
+        return { contents: "read", checks: "write", metadata: "read" };
+      },
+    },
+    {
+      signature: signGitHubWebhook(raw, SECRET),
+      event: "pull_request",
+      delivery: "d-resolve-ok",
+    },
+    raw,
+  );
+  assert.equal(resolvedId, 42);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ok, true);
+  if (r.body.ok && r.body.decision) {
+    // Past the permission gate: entitled + verify ok → allow
+    assert.equal(r.body.decision.outcome, "allow");
+    assert.equal(r.body.decision.conclusion, "success");
+  } else {
+    assert.fail("expected allow decision after permission resolve");
+  }
+});
+
+test("check_suite: omitted permissions + resolver → past missing-perm deny", async () => {
+  const body = {
+    action: "requested",
+    installation: { id: 42, account: { login: "acme", type: "Organization" } },
+    repository: {
+      private: true,
+      full_name: "acme/mcp",
+      name: "mcp",
+      owner: { login: "acme" },
+    },
+    check_suite: { head_sha: "abc123" },
+  };
+  const raw = Buffer.from(JSON.stringify(body), "utf8");
+  const r = await handleGitHubWebhook(
+    {
+      webhookSecret: SECRET,
+      entitlement: entitled,
+      makeVerify: () => async () => ({ ok: true }),
+      resolveInstallationPermissions: async () => ({
+        contents: "read",
+        checks: "write",
+      }),
+    },
+    {
+      signature: signGitHubWebhook(raw, SECRET),
+      event: "check_suite",
+      delivery: "d-suite",
+    },
+    raw,
+  );
+  assert.equal(r.status, 200);
+  if (r.body.ok && r.body.decision) {
+    assert.equal(r.body.decision.outcome, "allow");
+  } else {
+    assert.fail("expected allow on check_suite after resolve");
+  }
+});

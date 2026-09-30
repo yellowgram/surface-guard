@@ -1,6 +1,7 @@
 import { SurfaceGuardDeny, type Decision } from "../errors.js";
 import { verifyGitHubWebhookSignature } from "./verify.js";
 import { parseInstallation } from "../auth/installation.js";
+import { hasUsableGatePermissions } from "../check/privateRepo.js";
 import { runSurfaceGuardCheck } from "../check/runCheck.js";
 import type { EntitlementStore } from "../billing/entitlement.js";
 import type { VerifyResult } from "../check/runCheck.js";
@@ -33,6 +34,14 @@ export type HandlerDeps = {
     installationId: number;
     decision: Decision;
   }) => Promise<{ id: number } | void>;
+  /**
+   * Resolve installation permissions via App JWT when the webhook payload
+   * omits them (common on pull_request / check_suite). Optional for tests.
+   * Fail closed: null / throw → keep payload perms (usually empty) → deny.
+   */
+  resolveInstallationPermissions?: (
+    installationId: number,
+  ) => Promise<Record<string, string> | null>;
 };
 
 type RepoPayload = {
@@ -150,10 +159,29 @@ export async function handleGitHubWebhook(
     };
   }
 
+  let permissions = installation.permissions;
+  if (!hasUsableGatePermissions(permissions) && deps.resolveInstallationPermissions) {
+    try {
+      const resolved = await deps.resolveInstallationPermissions(
+        installation.installationId,
+      );
+      if (resolved && hasUsableGatePermissions(resolved)) {
+        permissions = resolved;
+      } else if (resolved && Object.keys(resolved).length > 0) {
+        // API returned a map but still missing required scopes — use it so deny
+        // messages reflect the real install (not empty webhook omission).
+        permissions = resolved;
+      }
+      // else keep payload perms (empty/incomplete) → existing deny paths
+    } catch {
+      // fail closed: keep payload perms
+    }
+  }
+
   const decision = await runSurfaceGuardCheck({
     repo: {
       private: repo.private,
-      permissions: installation.permissions,
+      permissions,
       fullName: repo.full_name,
     },
     orgLogin,

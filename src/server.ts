@@ -6,7 +6,11 @@ import { handleGitHubWebhook } from "./webhook/handler.js";
 import type { VerifyResult } from "./check/runCheck.js";
 import type { Decision } from "./errors.js";
 import { SurfaceGuardDeny } from "./errors.js";
-import { createGitHubApp, createInstallationOctokit } from "./github/octokit.js";
+import {
+  createGitHubApp,
+  createInstallationOctokit,
+  fetchInstallationPermissions,
+} from "./github/octokit.js";
 import { makeContentsFetcher } from "./github/contents.js";
 import { postSurfaceGuardCheck } from "./github/checks.js";
 import { verifySurfacePinAtSha } from "./check/surfacepinVerify.js";
@@ -46,6 +50,9 @@ export function createServer(opts?: {
     installationId: number;
     decision: Decision;
   }) => Promise<{ id: number } | void>;
+  resolveInstallationPermissions?: (
+    installationId: number,
+  ) => Promise<Record<string, string> | null>;
 }): http.Server {
   const env = opts?.env ?? process.env;
   const config = loadConfig(env);
@@ -106,6 +113,14 @@ export function createServer(opts?: {
       });
     });
 
+
+  const resolveInstallationPermissions =
+    opts?.resolveInstallationPermissions ??
+    (async (installationId: number) => {
+      if (stubMode || !app) return null;
+      return fetchInstallationPermissions(app, installationId);
+    });
+
   const server = http.createServer(async (req, res) => {
     try {
       if (req.method === "GET" && req.url === "/health") {
@@ -137,6 +152,7 @@ export function createServer(opts?: {
             entitlement,
             makeVerify,
             postCheck,
+            resolveInstallationPermissions,
           },
           {
             signature: req.headers["x-hub-signature-256"] as string | undefined,

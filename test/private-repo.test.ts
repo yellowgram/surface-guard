@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { evaluatePrivateRepoGate } from "../src/check/privateRepo.js";
+import {
+  evaluatePrivateRepoGate,
+  hasUsableGatePermissions,
+} from "../src/check/privateRepo.js";
 
 const permsOk = { contents: "read", checks: "write", metadata: "read" };
 
@@ -69,4 +72,18 @@ test("deny: missing checks:write", () => {
   if (d.outcome === "deny") {
     assert.equal(d.code, "missing_checks_permission");
   }
+});
+
+test("hasUsableGatePermissions: empty / missing → false", () => {
+  assert.equal(hasUsableGatePermissions(null), false);
+  assert.equal(hasUsableGatePermissions({}), false);
+  assert.equal(hasUsableGatePermissions({ contents: "read" }), false);
+  assert.equal(hasUsableGatePermissions({ checks: "write" }), false);
+});
+
+test("hasUsableGatePermissions: contents read + checks write → true", () => {
+  assert.equal(
+    hasUsableGatePermissions({ contents: "read", checks: "write" }),
+    true,
+  );
 });
