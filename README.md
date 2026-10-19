@@ -1,20 +1,16 @@
 # Surface Guard
 
-**Paid GitHub App** — private-repo PR check for [SurfacePin](https://github.com/yellowgram/surfacepin) lockfiles.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-| Layer | Repo / URL | Price | Status |
-|-------|------------|-------|--------|
-| OSS SurfacePin | `yellowgram/surfacepin` (MIT) | Free, offline | Live |
-| Surface Guard founding reservation | [www.yellowgram.dev/surface-guard](https://www.yellowgram.dev/surface-guard) | First 20 orgs lock **$99/mo** or **$990/yr** · 90-day auto-refund if no working private-repo check | Reservation checkout may be live |
-| Surface Guard App (this repo) | private-repo Checks API path | same founding prices when strategy unpauses | **Code wired; not claimed public-sell live** |
+> **Archived / unmaintained.** Surface Guard is no longer developed, sold, or hosted. It is published as-is under the MIT License for reference. There is no support, no SLA, and no hosted instance. Releases before 0.2.0 were under the previous (proprietary) license.
+>
+> Known leftover: `src/check/messages.ts` still prints the old reservation link and price text in denied check summaries. That code path is unchanged in this archive; edit it if you run your own copy.
 
-Public repos stay on the free OSS Action. This App is for **private** repos on paying orgs only.
-
-**Do not** tell buyers the App is generally available / public-sell live until strategy unpauses G-APP. Soft-WTP outreach is out of scope for this repo.
+GitHub App that ran a private-repo PR check for [SurfacePin](https://github.com/yellowgram/surfacepin) lockfiles. For public repos and for anything maintained, use the SurfacePin CLI and Action (MIT) directly.
 
 ## What is wired (this branch)
 
-Fail-closed end-to-end path for a hosted App:
+Fail-closed end-to-end path for a self-hosted App:
 
 1. **Webhook signature** — `X-Hub-Signature-256` HMAC-SHA256 required. Missing/invalid → `401`. Placeholder secrets refuse to boot / verify.
 2. **Private-repo gate** — `repository.private === true` required. Public → deny (point at OSS Action). `null` / unknown → deny.
@@ -66,11 +62,15 @@ npm run build && npm start
 1. Create GitHub App from [`manifest/github-app.yml`](manifest/github-app.yml) (do not widen scopes).
 2. Set webhook URL to `https://<host>/github/webhook`, secret = `GITHUB_WEBHOOK_SECRET`.
 3. Install on one **org**; select only private repos that need the check.
-4. Mark org entitled after verified Polar payment (`SURFACE_GUARD_ENTITLED_ORGS` or billing hook `applyBillingEntitlement`).
+4. Mark org entitled (`SURFACE_GUARD_ENTITLED_ORGS`, or the Polar billing hook `applyBillingEntitlement` if you wire your own billing).
 5. Open a PR on a private repo with lockfile + surface dump — check must match or deny with explicit messages.
 
 See [`docs/HOSTING.md`](docs/HOSTING.md) for Fly/env details and honest gaps.
 
 ## License
 
-Proprietary — see `LICENSE`. OSS SurfacePin remains MIT.
+MIT. See [LICENSE](LICENSE). SurfacePin is also MIT.
+
+---
+
+Part of yellowgram open source tools: https://www.yellowgram.dev/oss

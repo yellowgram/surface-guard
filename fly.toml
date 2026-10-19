@@ -1,7 +1,7 @@
 # Surface Guard — Fly.io app config
 # App name: surface-guard → https://surface-guard.fly.dev
 # Secrets are set via `fly secrets set` (never commit them).
-# See docs/OPERATOR_GO_LIVE.md and docs/HOSTING.md.
+# See docs/HOSTING.md. Archived: yellowgram no longer hosts this app.
 
 app = "surface-guard"
 primary_region = "iad"

@@ -1,12 +1,11 @@
 # Surface Guard — hosting path
 
-Operator runbook to host the **private-repo** GitHub App check. This is not a public-sell go-live checklist.
+> **Archived / unmaintained.** Kept for reference. yellowgram does not host or sell Surface Guard.
 
-**Honesty bar (do not cross):**
+Operator notes to self-host the **private-repo** GitHub App check.
 
-- Founding **reservation** checkout may be live on www (`/surface-guard`). That is **not** the App.
-- Do **not** claim the App is sold publicly, generally available, or “live for buyers” until strategy unpauses G-APP after demand/dependent gates.
-- Soft-WTP outreach is banned from this track — no cold DMs, no fabricated demand, no Soft-WTP copy in buyer-facing pages.
+**Fail-closed rule:**
+
 - Fail closed always: missing signature, public repo, unpaid org, missing files, auth failure, or Checks API failure → explicit deny / HTTP error. No silent pass.
 
 ## What this host does
@@ -56,9 +55,9 @@ HOST=0.0.0.0                                       # behind a reverse proxy
 ```
 
 Billing webhook: `https://<your-host>/billing/polar`  
-Checkout custom field slug: `github_org` (required on founding products).
+Checkout custom field slug: `github_org` (required on the products you sell, if you wire Polar billing).
 
-Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (never use for founding orgs).
+Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (never use for real orgs).
 
 ## GitHub App setup
 
@@ -73,7 +72,6 @@ Emergency only: `SURFACE_GUARD_STUB_VERIFY=1` forces fail-closed stub verify (ne
 
 - [`Dockerfile`](../Dockerfile) — multi-stage Node 20, `CMD node dist/src/server.js`, non-root `surfaceguard`, `PORT`/`HOST` from env
 - [`fly.toml`](../fly.toml) — app name `surface-guard`, region `iad`, health check `GET /health`
-- Ordered go-live checklist: [`OPERATOR_GO_LIVE.md`](OPERATOR_GO_LIVE.md) (founder clicks vs agent work)
 
 ## Example: Fly.io
 
@@ -107,7 +105,7 @@ npm ci && npm test
 ## Still operator / strategy (honest gaps)
 
 - GitHub App registration + PEM + webhook secret are **manual**
-- Polar → durable entitlement is wired (`POST /billing/polar`); founder must add webhook URL + secret + `github_org` custom field
+- Polar → durable entitlement is wired (`POST /billing/polar`); the operator must add webhook URL + secret + `github_org` custom field
 - No multi-region HA / SLA pack
-- Founding public sell: set `SURFACE_GUARD_PUBLIC_SELL_LIVE=true` after E2E + founder GO ($99/$990 only; no Soft*). Marketplace GA still separate.
+- `SURFACE_GUARD_PUBLIC_SELL_LIVE` only toggles the `publicSellLive` field on `/health` (default false).
 - Live stdio verify is out of scope for the App host (use OSS Action for that)
