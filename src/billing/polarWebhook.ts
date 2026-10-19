@@ -108,7 +108,7 @@ export function inferPlan(data: unknown, eventType: string): EntitlementPlan {
   if (interval === "year" || interval === "yearly") return "yearly";
   if (interval === "month" || interval === "monthly") return "monthly";
 
-  // Product name heuristics (founding checkouts are monthly $99 / yearly $990).
+  // Product name heuristics: plan names containing "year" or "month".
   const product = obj.product;
   if (product && typeof product === "object") {
     const name = String((product as Record<string, unknown>).name ?? "").toLowerCase();

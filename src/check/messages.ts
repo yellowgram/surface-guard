@@ -1,6 +1,5 @@
 import type { DenyCode } from "../errors.js";
 
-const FOUNDING_URL = "https://www.yellowgram.dev/surface-guard";
 const OSS_ACTION = "https://github.com/yellowgram/surfacepin#github-action";
 
 export function denyTitle(code: DenyCode): string {
@@ -35,9 +34,8 @@ export function denySummary(code: DenyCode, detail?: string): string {
   switch (code) {
     case "repo_public":
       return (
-        "This repository is **public**. Surface Guard only runs on **private** repos for paying orgs.\n\n" +
-        `Use the free OSS Action instead: ${OSS_ACTION}\n` +
-        `Founding reservation: ${FOUNDING_URL}` +
+        "This repository is **public**. Surface Guard only runs on **private** repos for entitled orgs.\n\n" +
+        `Use the free OSS Action instead: ${OSS_ACTION}` +
         extra
       );
     case "repo_privacy_unknown":
@@ -62,8 +60,8 @@ export function denySummary(code: DenyCode, detail?: string): string {
     case "org_not_entitled":
       return (
         "This GitHub organization is not on an active Surface Guard plan.\n\n" +
-        `Reserve founding pricing ($99/mo or $990/yr per org): ${FOUNDING_URL}\n` +
-        "Public repos can keep using free OSS SurfacePin." +
+        "Surface Guard is archived and not sold. Run your own copy (MIT), or use free OSS SurfacePin: " +
+        `${OSS_ACTION}` +
         extra
       );
     case "entitlement_store_unavailable":

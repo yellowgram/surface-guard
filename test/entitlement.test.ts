@@ -23,7 +23,8 @@ test("deny: org not entitled — clear message", async () => {
   assert.equal(d.outcome, "deny");
   if (d.outcome === "deny") {
     assert.equal(d.code, "org_not_entitled");
-    assert.match(d.summary, /surface-guard/i);
+    assert.match(d.summary, /not on an active Surface Guard plan/);
+    assert.doesNotMatch(d.summary, /\$\d|founding|reserv/i);
   }
 });
 

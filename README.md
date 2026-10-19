@@ -2,9 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Archived / unmaintained.** Surface Guard is no longer developed, sold, or hosted. It is published as-is under the MIT License for reference. There is no support, no SLA, and no hosted instance. Releases before 0.2.0 were under the previous (proprietary) license.
->
-> Known leftover: `src/check/messages.ts` still prints the old reservation link and price text in denied check summaries. That code path is unchanged in this archive; edit it if you run your own copy.
+> **Archived / unmaintained.** Surface Guard is no longer developed, sold, or hosted. It is published as-is under the MIT License for reference. There is no support, no SLA, and no hosted instance. v0.2.0 is the first tagged version and is MIT; earlier, untagged commits in the history were under the previous (proprietary) license.
 
 GitHub App that ran a private-repo PR check for [SurfacePin](https://github.com/yellowgram/surfacepin) lockfiles. For public repos and for anything maintained, use the SurfacePin CLI and Action (MIT) directly.
 
